@@ -1,6 +1,7 @@
 const $ = s => document.querySelector(s), fmt = n => String(n).replace('.', ','), KEY = 'sprog-v1';
 const mon = () => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return d; };
-const S = { start: mon().toISOString(), logs: {}, done: [], body: [], cur: null, ...JSON.parse(localStorage.getItem(KEY) || '{}') };
+const load = () => { const raw = localStorage.getItem(KEY); try { return JSON.parse(raw || '{}') || {}; } catch { localStorage.setItem(KEY + '-corrompu', raw); return {}; } };
+const S = { start: mon().toISOString(), logs: {}, done: [], body: [], cur: null, ...load() };
 const save = () => localStorage.setItem(KEY, JSON.stringify(S));
 const week = () => Math.max(1, Math.round((mon() - new Date(S.start)) / 6048e5) + 1);
 const wc = () => (week() - 1) % 12 + 1, cy = () => Math.floor((week() - 1) / 12) + 1;
@@ -70,7 +71,9 @@ function suivi() {
 
 const act = {
   day(v) { V.day = +v; render(); },
-  start(v) { if (!S.cur || S.cur.n !== +v) S.cur = { n: +v, i: 0, sets: {}, t0: Date.now() }; V.tab = 'seance'; save(); render(); },
+  start(v) {
+    if (S.cur && S.cur.n !== +v && !confirm('Une séance est déjà en cours. La remplacer par la séance ' + v + ' ?')) return;
+    if (!S.cur || S.cur.n !== +v) S.cur = { n: +v, i: 0, sets: {}, t0: Date.now() }; V.tab = 'seance'; save(); render(); },
   quit() { V.tab = 'home'; render(); },
   drop() { if (confirm('Abandonner la séance en cours ?')) { S.cur = null; rest = 0; V.tab = 'home'; save(); render(); } },
   valid() {
