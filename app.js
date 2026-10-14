@@ -2,7 +2,9 @@ const $ = s => document.querySelector(s), fmt = n => String(n).replace('.', ',')
 const mon = () => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return d; };
 const S = { start: mon().toISOString(), logs: {}, done: [], body: [], cur: null, ...JSON.parse(localStorage.getItem(KEY) || '{}') };
 const save = () => localStorage.setItem(KEY, JSON.stringify(S));
-const week = () => Math.min(12, Math.max(1, Math.round((mon() - new Date(S.start)) / 6048e5) + 1));
+const week = () => Math.max(1, Math.round((mon() - new Date(S.start)) / 6048e5) + 1);
+const wc = () => (week() - 1) % 12 + 1, cy = () => Math.floor((week() - 1) / 12) + 1;
+const TIPS = [[2, 'Apprends les réglages et la technique. Garde 3 répétitions en réserve ; baisse la charge si nécessaire.'], [6, 'Garde la fourchette de répétitions. Quand toutes les séries atteignent le haut de la fourchette, ajoute le plus petit incrément.'], [10, 'Même méthode. N’ajoute pas de séries si tu progresses déjà.'], [12, 'Évaluation : compare tes performances, ton poids moyen et ton tour de taille. En cas de fatigue persistante, réduis les séries de 30–40 % cette semaine.']];
 const DAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'], MAP = [1, 2, 3, 0, 4, 5, 0], today = () => (new Date().getDay() + 6) % 7;
 const V = { tab: 'home', day: today(), ex: null };
 let rest = 0, restMax = 1;
@@ -20,7 +22,7 @@ function home() {
   const card = n
     ? `<section class="card"><div class="lbl">SÉANCE ${n}</div><h2>${P.name}</h2><p class="mut">${P.ex.length} exercices · ${P.dur}</p><ul>${P.ex.map(e => `<li><span>${e[0]}</span><span class="mut">${e[1]} × ${e[2]}</span></li>`).join('')}</ul><button class="cta" data-a="start" data-v="${n}">${S.cur && S.cur.n === n ? 'Reprendre la séance' : 'Commencer la séance'}</button></section>`
     : `<section class="card"><h2>${V.day === 3 ? 'Repos actif' : 'Repos'}</h2><p class="mut">${V.day === 3 ? 'Marche ou cardio facile, 20–35 min.' : 'Récupération, marche facultative.'}</p></section>`;
-  return `<p class="lbl mut">Semaine ${w} sur 12</p><h1>${n ? 'Séance ' + n + ' · ' + P.name.split(' — ')[0] : 'Jour de repos'}</h1><div class="bar"><i style="width:${w / 12 * 100}%"></i></div><div class="strip">${strip}</div>${card}`;
+  return `<p class="lbl mut">Cycle ${cy()} · semaine ${wc()} sur 12</p><h1>${n ? 'Séance ' + n + ' · ' + P.name.split(' — ')[0] : 'Jour de repos'}</h1><div class="bar"><i style="width:${wc() / 12 * 100}%"></i></div><div class="strip">${strip}</div>${card}<p class="mut small">${TIPS.find(t => wc() <= t[0])[1]}</p>`;
 }
 
 function seance() {
@@ -47,7 +49,7 @@ function seance() {
 
 function prog() {
   const names = Object.keys(S.logs), stat = (a, b) => `<div class="card"><b class="big">${a}</b><small class="mut">${b}</small></div>`;
-  if (!names.length) return `<h1>Progression</h1><p class="mut">Termine une séance pour voir tes courbes.</p><div class="two">${stat(S.done.length + ' / 60', 'séances faites')}</div>`;
+  if (!names.length) return `<h1>Progression</h1><p class="mut">Termine une séance pour voir tes courbes.</p><div class="two">${stat(S.done.length, 'séances faites')}</div>`;
   const nm = S.logs[V.ex] ? V.ex : names[0], L = S.logs[nm], pts = L.map(l => Math.max(...l.sets.map(s => s.kg)));
   const mn = Math.min(...pts), sp = (Math.max(...pts) - mn) || 1, X = i => pts.length > 1 ? 20 + i * 310 / (pts.length - 1) : 175, Y = v => 140 - (v - mn) / sp * 100;
   let prs = 0;
@@ -56,12 +58,12 @@ function prog() {
   const svg = `<svg viewBox="0 0 350 170" role="img" aria-label="Charge maximale par séance : ${nm}"><polyline points="${pts.map((v, i) => X(i) + ',' + Y(v)).join(' ')}" fill="none" stroke="var(--ac)" stroke-width="3"/>${pts.map((v, i) => `<circle cx="${X(i)}" cy="${Y(v)}" r="5" fill="${i === pts.length - 1 ? 'var(--ac)' : 'var(--bg)'}" stroke="var(--ac)" stroke-width="3"/>`).join('')}<text x="${X(0)}" y="165">S${L[0].w}</text>${pts.length > 1 ? `<text x="${X(pts.length - 1)}" y="165">S${L.at(-1).w}</text>` : ''}</svg>`;
   return `<h1>Progression</h1><select aria-label="Exercice">${names.map(n => `<option${n === nm ? ' selected' : ''}>${n}</option>`).join('')}</select>
 <div><b class="big">${fmt(pts.at(-1))} <small>kg</small></b><p class="acc">${pts.length > 1 ? (d >= 0 ? '+' : '') + fmt(d) + ' kg depuis S' + L[0].w : 'Première séance enregistrée'}</p></div>${svg}
-<div class="two">${stat(prs, 'records battus')}${stat(S.done.length + ' / 60', 'séances faites')}</div>`;
+<div class="two">${stat(prs, 'records battus')}${stat(S.done.length, 'séances faites')}</div>`;
 }
 
 function suivi() {
   const w = week(), e = S.body.find(b => b.w === w) || {};
-  return `<h1>Suivi</h1><p class="mut">Semaine ${w} : poids moyen, tour de taille et forme.</p>
+  return `<h1>Suivi</h1><p class="mut">Semaine ${w} (cycle ${cy()}, semaine ${wc()} sur 12) : poids moyen, tour de taille et forme.</p>
 <section class="card form"><label>Poids moyen (kg)<input id="b-kg" inputmode="decimal" value="${e.kg ? fmt(e.kg) : ''}"></label><label>Tour de taille (cm)<input id="b-cm" inputmode="decimal" value="${e.cm ? fmt(e.cm) : ''}"></label><label>Énergie / récupération (1–5)<input id="b-en" inputmode="numeric" value="${e.en || ''}"></label><button class="cta" data-a="body">Enregistrer</button></section>
 <ul class="hist">${[...S.body].sort((a, b) => b.w - a.w).map(b => `<li><span>S${b.w}</span><span>${b.kg ? fmt(b.kg) + ' kg' : '—'} · ${b.cm ? fmt(b.cm) + ' cm' : '—'} · énergie ${b.en || '—'}/5</span></li>`).join('')}</ul>`;
 }

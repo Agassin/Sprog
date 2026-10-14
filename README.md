@@ -4,7 +4,7 @@ Application web mobile (PWA) pour suivre un programme de salle de 12 semaines : 
 
 ## Fonctions
 
-- **Programme** : semaine type, séance du jour, progression sur 12 semaines
+- **Programme** : semaine type, séance du jour ; le cycle de 12 semaines se répète sans fin, avec tout l'historique conservé
 - **Séance** : séries, charge et répétitions, minuteur de repos, rappel de la dernière séance et conseil de progression
 - **Progression** : courbe de charge par exercice, records
 - **Suivi** : poids moyen, tour de taille et énergie, semaine par semaine
