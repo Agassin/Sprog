@@ -30,16 +30,16 @@ async function main() {
       '--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--remote-debugging-port=0',
       '--user-data-dir=' + profile, 'about:blank'
     ], {stdio:['ignore','ignore','pipe']});
-    let chromeError;
+    let chromeError, chromeLog = '';
     chrome.on('error', error => {chromeError = error;});
-    chrome.stderr.on('data', () => {});
+    chrome.stderr.on('data', chunk => {chromeLog = (chromeLog + chunk.toString()).slice(-4000);});
     let debugPort;
-    for (let i=0; i<100; i++) {
+    for (let i=0; i<300; i++) {
       if (chromeError) throw chromeError;
       try {debugPort = (await fs.readFile(path.join(profile,'DevToolsActivePort'),'utf8')).split('\n')[0]; break;} catch {}
       await sleep(100);
     }
-    if (!debugPort) throw Error('Chrome debugging endpoint unavailable');
+    if (!debugPort) throw Error('Chrome debugging endpoint unavailable: ' + chromeLog);
     const pages = await (await fetch('http://127.0.0.1:' + debugPort + '/json/list')).json();
     socket = new WebSocket(pages.find(p => p.type === 'page').webSocketDebuggerUrl);
     await new Promise((resolve,reject) => {socket.addEventListener('open', resolve, {once:true}); socket.addEventListener('error', reject, {once:true});});
