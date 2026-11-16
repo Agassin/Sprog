@@ -35,3 +35,31 @@ nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--bg);bor
 nav button{flex:1;height:64px;background:none;border:0;border-top:3px solid transparent;color:var(--mut);font:600 13px system-ui,sans-serif}
 nav button.on{color:var(--tx);border-top-color:var(--ac)}
 @media(min-width:480px){nav{left:50%;transform:translateX(-50%);max-width:480px}}
+
+[hidden]{display:none!important}
+button,a,input,select,summary{touch-action:manipulation}
+button,summary{cursor:pointer}
+button:disabled{opacity:.5;cursor:default}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--ac);outline-offset:3px}
+a{color:var(--ac);text-underline-offset:3px}
+h1:focus{outline:none}
+.ghost,summary{min-height:44px}
+.card{min-width:0;overflow-wrap:anywhere}
+.card p + p,.card h2 + p{margin-top:12px}
+.card h2{font-size:26px}
+.card li{flex-wrap:wrap}
+.form input[type=file]{font-size:14px;height:auto;padding:12px}
+.messages{max-width:480px;margin:auto;padding:0 20px}
+.banner{padding:12px;border:1px solid var(--line);border-radius:10px;margin-top:12px}
+.warning{border-color:var(--ac)}
+.banner button{min-height:44px;font:inherit}
+#status:not(:empty){padding:12px 0}
+.danger{color:#ff9e9e}
+.skip-link{position:absolute;left:12px;top:-80px;z-index:10;background:var(--bg);padding:12px}
+.skip-link:focus{top:12px}
+#app{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+nav{width:100%}
+nav button{min-width:0;font-size:12px}
+body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+@media(max-width:360px){#app{padding-left:12px;padding-right:12px}nav{padding-left:0;padding-right:0}nav button{font-size:11px}.card{padding:16px}.top{gap:12px;flex-wrap:wrap}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}

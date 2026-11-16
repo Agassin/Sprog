@@ -1,0 +1,13 @@
+{
+  "name": "sprog",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Suivi de musculation PWA, local et hors ligne",
+  "scripts": {
+    "test": "node tests/run.cjs",
+    "check": "node --check app.js && node --check data.js && node --check program.js && node --check sw.js"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
