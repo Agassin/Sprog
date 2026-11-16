@@ -84,8 +84,9 @@ async function main() {
     await send('Network.setCacheDisabled',{cacheDisabled:true});
     // Stop the origin server: a reload must now be served by the actual worker.
     await new Promise(resolve => {server.close(resolve); server.closeAllConnections();});
+    await evaluate('window.__sprogReloadProbe = true');
     await send('Page.reload',{ignoreCache:true});
-    await until("typeof S !== 'undefined' && !!document.querySelector('#app h1')");
+    await until("!window.__sprogReloadProbe && typeof S !== 'undefined' && !!document.querySelector('#app h1')");
     await check('S.cur.sets[0][0].kg === 40.5', 'Offline reload preserves session');
     await evaluate("document.querySelector('[data-t=\"settings\"]').click()");
     await check("document.querySelector('#app').textContent.includes('Confidentialité')", 'Settings work offline');

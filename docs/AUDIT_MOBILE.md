@@ -36,10 +36,11 @@ La version initiale était un prototype PWA fonctionnel mais insuffisamment prot
 ## Vérifications
 
 - 50 assertions de logique et d’import exécutées dans le moteur JavaScript disponible pendant l’intervention.
-- Tests Node ajoutés pour les caches, l’activation et les chemins relatifs du service worker.
-- Vérification syntaxique JavaScript réalisée pendant la préparation ; vérification Node prévue dans la CI.
-- Aucun navigateur ni émulateur disponible pendant l’intervention : aucun résultat Lighthouse, TalkBack, VoiceOver, Android ou iOS n’est revendiqué.
-- La réussite de la CI doit être vérifiée sur le commit proposé.
+- 57 assertions Node réussies dans la CI, dans les fuseaux Europe/Paris et America/New_York, y compris les caches, l’activation et les chemins relatifs du service worker.
+- Vérification syntaxique JavaScript et Node réussie.
+- 16 vérifications dans Chrome headless en CI : cinq écrans à 320 px, saisie par le DOM, validation de série, minuteur, rechargement après arrêt du serveur et page de confidentialité hors ligne.
+- Aucun téléphone physique ni émulateur Android/iOS utilisé : les tests Chrome ne certifient pas Safari, l’installation native, TalkBack ou VoiceOver. Aucun score Lighthouse n’est revendiqué.
+- La CI est exécutée à chaque modification de la branche ; vérifier son résultat sur le dernier commit avant fusion.
 
 ## Recette avant publication
 

@@ -53,7 +53,7 @@ npm run check
 npm test
 ```
 
-La CI exécute ces commandes avec les fuseaux Europe/Paris et America/New_York. Les tests couvrent la validation, la migration, le stockage, les actions de séance, le minuteur, l’import et le service worker. Le faux DOM des tests de logique ne remplace pas un navigateur ou un téléphone.
+La CI exécute ces commandes avec les fuseaux Europe/Paris et America/New_York. Les tests couvrent la validation, la migration, le stockage, les actions de séance, le minuteur, l’import et le service worker. Le faux DOM des tests de logique est complété par des tests Chrome headless à 320 px : navigation, saisie et rechargement hors ligne après arrêt du serveur. Ils s’exécutent avec `node tests/browser.cjs` (Chrome installé, éventuellement via `CHROME_BIN`). Ils ne remplacent pas une recette sur téléphone.
 
 Voir [l’audit et la recette mobile](docs/AUDIT_MOBILE.md) avant publication.
 
