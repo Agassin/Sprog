@@ -5,7 +5,7 @@ adb logcat -c
 adb shell am start -W -n fr.agassin.sprog/.MainActivity
 sleep 8
 adb shell dumpsys activity activities > /tmp/sprog-activity.txt
-grep -E 'mResumedActivity.*fr.agassin.sprog' /tmp/sprog-activity.txt
+grep -E '(mResumedActivity|topResumedActivity).*fr.agassin.sprog' /tmp/sprog-activity.txt
 adb shell uiautomator dump /sdcard/sprog-window.xml
 adb pull /sdcard/sprog-window.xml /tmp/sprog-window.xml
 grep -E 'Programme|Sprog|Séance' /tmp/sprog-window.xml
