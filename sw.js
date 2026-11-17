@@ -1,5 +1,5 @@
 /* Bump the cache version whenever an application asset changes. */
-const CACHE = 'sprog-v4';
+const CACHE = 'sprog-v5';
 const FILES = ['./', 'index.html', 'style.css', 'program.js', 'data.js', 'app.js', 'privacy.html', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'icon-180.png'];
 const URLS = FILES.map(path => new URL(path, self.registration.scope).href);
 self.addEventListener('install', event => {

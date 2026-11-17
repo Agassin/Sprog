@@ -2,10 +2,13 @@ const $ = s => document.querySelector(s), fmt = n => String(n).replace('.', ',')
 const esc = SprogData.escape, mon = SprogData.monday;
 let storage;
 try { storage = window.localStorage; } catch {}
+const DEFAULT_PROGRAM = JSON.parse(JSON.stringify(PROGRAM));
 const loaded = SprogData.read(storage, PROGRAM);
 const S = loaded.state;
+PROGRAM = S.program || DEFAULT_PROGRAM;
 let storageBlocked = !!loaded.error;
-function notice(message) { $('#status').textContent = message; }
+let noticeTimer;
+function notice(message) { $('#status').textContent = message; clearTimeout(noticeTimer); noticeTimer = setTimeout(() => {$('#status').textContent='';}, 6000); }
 function storageWarning(message) { $('#storage-warning').hidden = false; $('#storage-warning').textContent = message; }
 function save() {
   if (storageBlocked) { storageWarning('Stockage illisible : les anciennes données sont préservées. Exporte-les dans Réglages avant de restaurer une sauvegarde ou de réinitialiser.'); return false; }
@@ -15,7 +18,7 @@ function save() {
 const week = () => SprogData.week(S.start);
 const wc = () => (week() - 1) % 12 + 1, cy = () => Math.floor((week() - 1) / 12) + 1;
 const TIPS = [[2, 'Apprends les réglages et la technique. Garde 3 répétitions en réserve ; baisse la charge si nécessaire.'], [6, 'Garde la fourchette de répétitions. Quand toutes les séries atteignent le haut de la fourchette, ajoute le plus petit incrément.'], [10, 'Même méthode. N’ajoute pas de séries si tu progresses déjà.'], [12, 'Évaluation : compare tes performances, ton poids moyen et ton tour de taille. En cas de fatigue persistante, réduis les séries de 30–40 % cette semaine.']];
-const DAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'], MAP = [1, 2, 3, 0, 4, 5, 0], today = () => (new Date().getDay() + 6) % 7;
+const DAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'], MAP = [...S.schedule], today = () => (new Date().getDay() + 6) % 7;
 const V = { tab: 'home', day: today(), ex: null };
 let rest = SprogData.remaining(S.cur?.restUntil || 0), restMax = S.cur?.restMax || 1;
 function clearRest() { rest = 0; if (S.cur) S.cur.restUntil = 0; }
@@ -31,9 +34,9 @@ function home() {
     return `<button class="day${ok ? ' ok' : ''}${i === today() ? ' today' : ''}${i === V.day ? ' sel' : ''}" data-a="day" data-v="${i}"><small>${l}</small><b>${d.getDate()}</b></button>`;
   }).join('');
   const card = n
-    ? `<section class="card"><div class="lbl">SÉANCE ${n}</div><h2>${P.name}</h2><p class="mut">${P.ex.length} exercices · ${P.dur}</p><ul>${P.ex.map(e => `<li><span>${e[0]}</span><span class="mut">${e[1]} × ${e[2]}</span></li>`).join('')}</ul><button class="cta" data-a="start" data-v="${n}">${S.cur && S.cur.n === n ? 'Reprendre la séance' : 'Commencer la séance'}</button></section>`
+    ? `<section class="card"><div class="lbl">SÉANCE ${n}</div><h2>${esc(P.name)}</h2><p class="mut">${P.ex.length} exercices · ${esc(P.dur)}</p><ul>${P.ex.map(e => `<li><span>${esc(e[0])}</span><span class="mut">${e[1]} × ${esc(e[2])}</span></li>`).join('')}</ul><button class="cta" data-a="start" data-v="${n}">${S.cur && S.cur.n === n ? 'Reprendre la séance' : 'Commencer la séance'}</button></section>`
     : `<section class="card"><h2>${V.day === 3 ? 'Repos actif' : 'Repos'}</h2><p class="mut">${V.day === 3 ? 'Marche ou cardio facile, 20–35 min.' : 'Récupération, marche facultative.'}</p></section>`;
-  return `${!S.done.length && !S.cur ? '<section class="card"><p>Bienvenue dans Sprog. Choisis un jour, démarre ta séance et valide chaque série. Pense à exporter tes données dans Réglages.</p></section>' : ''}<p class="lbl mut">Cycle ${cy()} · semaine ${wc()} sur 12</p><h1>${n ? 'Séance ' + n + ' · ' + P.name.split(' — ')[0] : 'Jour de repos'}</h1><div class="bar"><i style="width:${wc() / 12 * 100}%"></i></div><div class="strip">${strip}</div>${card}<p class="mut small">${TIPS.find(t => wc() <= t[0])[1]}</p>`;
+  return `${!S.done.length && !S.cur ? '<section class="card"><p>Bienvenue dans Sprog. Choisis un jour, démarre ta séance et valide chaque série. Pense à exporter tes données dans Réglages.</p></section>' : ''}<p class="lbl mut">Cycle ${cy()} · semaine ${wc()} sur 12</p><h1>${n ? 'Séance ' + n + ' · ' + esc(P.name.split(' — ')[0]) : 'Jour de repos'}</h1><div class="bar"><i style="width:${wc() / 12 * 100}%"></i></div><div class="strip">${strip}</div>${card}<p class="mut small">${TIPS.find(t => wc() <= t[0])[1]}</p>`;
 }
 
 function seance() {
@@ -49,8 +52,8 @@ function seance() {
     ? `Dernière fois : ${last.sets.map(s => kgTxt(s.kg) + s.reps).join(' · ')}. ${last.sets.every(s => s.reps >= hi) ? 'Tu avais atteint ' + hi + ' partout : augmente légèrement la charge.' : 'Atteins ' + hi + ' sur toutes les séries pour augmenter la charge.'}`
     : 'Première fois : commence léger et soigne la technique.';
   return `<div class="top"><button class="ghost" data-a="quit">‹ Quitter</button><span id="clk" class="clk">${clock(Math.floor((Date.now() - c.t0) / 1000))}</span></div>
-<p class="lbl">EXERCICE ${c.i + 1} SUR ${P.ex.length}</p><h1>${name}</h1>
-<p class="mut">${ns} × ${reps} · repos ${rs >= 120 ? rs / 60 + ' min' : rs + ' s'} · garde 1–2 reps en réserve</p>
+<p class="lbl">EXERCICE ${c.i + 1} SUR ${P.ex.length}</p><h1>${esc(name)}</h1>
+<p class="mut">${ns} × ${esc(reps)} · repos ${rs >= 120 ? rs / 60 + ' min' : rs + ' s'} · garde 1–2 reps en réserve</p>
 <section class="card rest"><div class="lbl mut">REPOS</div><div id="rest" class="big">${clock(S.cur.restUntil ? rest : rs)}</div><div class="bar"><i id="restbar" style="width:${rest ? rest / restMax * 100 : 0}%"></i></div></section>
 <div class="sets"><div class="set hd"><span>SÉRIE</span><span>CHARGE (KG)</span><span>REPS</span><i></i></div>${rows}</div>
 <p class="mut small">${hint}</p>
@@ -63,13 +66,13 @@ function seance() {
 function prog() {
   const names = Object.keys(S.logs), stat = (a, b) => `<div class="card"><b class="big">${a}</b><small class="mut">${b}</small></div>`;
   if (!names.length) return `<h1>Progression</h1><button class="ghost" data-a="history">Voir l’historique des séances</button><p class="mut">Termine une séance pour voir tes courbes.</p><div class="two">${stat(S.done.length, 'séances faites')}</div>`;
-  const nm = S.logs[V.ex] ? V.ex : names[0], L = S.logs[nm], pts = L.map(l => Math.max(...l.sets.map(s => s.kg)));
+  const nm = S.logs[V.ex] ? V.ex : names[0], L = S.logs[nm].slice(-100), pts = L.map(l => Math.max(...l.sets.map(s => s.kg)));
   const mn = Math.min(...pts), sp = (Math.max(...pts) - mn) || 1, X = i => pts.length > 1 ? 20 + i * 310 / (pts.length - 1) : 175, Y = v => 140 - (v - mn) / sp * 100;
   let prs = 0;
   names.forEach(n => { let m = 0; S.logs[n].forEach(l => { const t = Math.max(...l.sets.map(s => s.kg)); if (t > m) { if (m) prs++; m = t; } }); });
   const d = Math.round((pts.at(-1) - pts[0]) * 10) / 10;
-  const svg = `<svg viewBox="0 0 350 170" role="img" aria-label="Charge maximale par séance : ${nm}"><polyline points="${pts.map((v, i) => X(i) + ',' + Y(v)).join(' ')}" fill="none" stroke="var(--ac)" stroke-width="3"/>${pts.map((v, i) => `<circle cx="${X(i)}" cy="${Y(v)}" r="5" fill="${i === pts.length - 1 ? 'var(--ac)' : 'var(--bg)'}" stroke="var(--ac)" stroke-width="3"/>`).join('')}<text x="${X(0)}" y="165">S${L[0].w}</text>${pts.length > 1 ? `<text x="${X(pts.length - 1)}" y="165">S${L.at(-1).w}</text>` : ''}</svg>`;
-  return `<h1>Progression</h1><button class="ghost" data-a="history">Voir l’historique des séances</button><select aria-label="Exercice">${names.map(n => `<option${n === nm ? ' selected' : ''}>${n}</option>`).join('')}</select>
+  const svg = `<svg viewBox="0 0 350 170" role="img" aria-label="Charge maximale par séance : ${esc(nm)}"><polyline points="${pts.map((v, i) => X(i) + ',' + Y(v)).join(' ')}" fill="none" stroke="var(--ac)" stroke-width="3"/>${pts.map((v, i) => `<circle cx="${X(i)}" cy="${Y(v)}" r="5" fill="${i === pts.length - 1 ? 'var(--ac)' : 'var(--bg)'}" stroke="var(--ac)" stroke-width="3"/>`).join('')}<text x="${X(0)}" y="165">S${L[0].w}</text>${pts.length > 1 ? `<text x="${X(pts.length - 1)}" y="165">S${L.at(-1).w}</text>` : ''}</svg>`;
+  return `<h1>Progression</h1><button class="ghost" data-a="history">Voir l’historique des séances</button><select aria-label="Exercice">${names.map(n => `<option${n === nm ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>
 <div><b class="big">${fmt(pts.at(-1))} <small>kg</small></b><p class="acc">${pts.length > 1 ? (d >= 0 ? '+' : '') + fmt(d) + ' kg depuis S' + L[0].w : 'Première séance enregistrée'}</p></div>${svg}
 <div class="two">${stat(prs, 'records battus')}${stat(S.done.length, 'séances faites')}</div>`;
 }
@@ -110,7 +113,7 @@ const act = {
     if (!Object.values(c.sets).some(rows => rows.some(s => s.ok))) return notice('Valide au moins une série ou abandonne cette séance.');
     const d = new Date().toISOString();
     P.ex.forEach((e, i) => { const ss = (c.sets[i] || []).filter(s => s.ok); if (ss.length) (S.logs[e[0]] = S.logs[e[0]] || []).push({ d, w: week(), sets: ss.map(s => ({ kg: s.kg, reps: s.reps })) }); });
-    S.done.push({ w: week(), n: c.n, d }); S.cur = null; V.tab = 'home'; save(); render();
+    S.done.push({ w: week(), n: c.n, name:P.name, d }); S.cur = null; V.tab = 'home'; save(); render();
   },
   body() {
     const w = week(); let entry;
@@ -125,8 +128,9 @@ const act = {
   }
 };
 
-const views = { home, seance, prog, suivi, settings, history };
+const views = { home, seance, prog, suivi, settings, history, editor };
 function render() {
+  document.body?.setAttribute('data-theme', S.theme);
   $('#app').innerHTML = views[V.tab]();
   document.querySelectorAll('nav button').forEach(b => {
     b.classList.toggle('on', b.dataset.t === V.tab);
@@ -138,7 +142,7 @@ function render() {
 document.addEventListener('click', e => { const b = e.target.closest('[data-a]'); if (b) act[b.dataset.a]?.(b.dataset.v); });
 document.addEventListener('input', e => { const t = e.target; if (t.dataset.f && S.cur) { S.cur.sets[S.cur.i][t.dataset.k][t.dataset.f] = t.value.slice(0, 32); save(); } });
 document.addEventListener('change', e => { if (V.tab === 'prog' && e.target.matches('select')) { V.ex = e.target.value; render(); } });
-document.querySelectorAll('nav button').forEach(b => b.onclick = () => { V.tab = b.dataset.t; render(); });
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => { if (!leaveEditor()) return; V.tab = b.dataset.t; render(); });
 function tick() {
   const previous = rest; rest = SprogData.remaining(S.cur?.restUntil || 0);
   if (previous > 0 && !rest) { if (typeof navigator.vibrate === 'function') { try { navigator.vibrate(400); } catch {} } notice('Repos terminé.'); }
@@ -151,24 +155,25 @@ function tick() {
 setInterval(tick, 1000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
 
-function download(filename, content, type = 'application/json') {
+async function download(filename, content, type = 'application/json') {
+  if (window.NativeBridge?.isNative) { await window.NativeBridge.exportFile(content); return; }
   const url = URL.createObjectURL(new Blob([content], {type}));
   const a = document.createElement('a'); a.href = url; a.download = filename;
   document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
 function settings() {
-  return '<h1>Réglages</h1><section class="card"><h2>Installation</h2><p>Android : utilise le menu du navigateur puis « Installer l’application ». Sur iPhone : ouvre Sprog dans Safari, puis Partager → Sur l’écran d’accueil.</p><button class="cta" data-a="install"' + (installPrompt ? '' : ' disabled') + '>Installer Sprog</button><p class="small mut">Le mode hors ligne devient disponible après le premier chargement complet en ligne. Le repos reprend à la bonne heure après une veille ; aucune alarme n’est garantie lorsque l’application est fermée.</p></section>' +
+  return '<h1>Réglages</h1><section class="card form"><h2>Mon application</h2><button class="cta" data-a="editProgram">Personnaliser le programme</button><button class="ghost" data-a="theme">Changer le thème clair / sombre</button></section><section class="card"><h2>Installation</h2><p>Android : utilise le menu du navigateur puis « Installer l’application ». Sur iPhone : ouvre Sprog dans Safari, puis Partager → Sur l’écran d’accueil.</p><button class="cta" data-a="install"' + (installPrompt ? '' : ' disabled') + '>Installer Sprog</button><p class="small mut">Le mode hors ligne devient disponible après le premier chargement complet en ligne. Le repos reprend à la bonne heure après une veille ; aucune alarme n’est garantie lorsque l’application est fermée.</p></section>' +
     '<section class="card form"><h2>Mes données</h2><p>Les séances et mesures restent dans ce navigateur. Une suppression des données du site ou un changement de téléphone peut les effacer. Exporte régulièrement une copie.</p><button class="cta" data-a="export">Exporter une sauvegarde</button><label>Restaurer une sauvegarde JSON (5 Mo maximum)<input id="import-file" type="file" accept=".json,application/json"></label><button class="ghost" data-a="raw">Exporter les données brutes sauvegardées</button><button class="ghost" data-a="recover">Restaurer la copie avant import</button><button class="ghost danger" data-a="reset">Effacer toutes mes données</button></section>' +
     '<section class="card"><h2>Confidentialité</h2><p>Aucun compte, publicité, outil d’analyse ou envoi de tes mesures à un serveur n’est intégré. Les données locales et les exports ne sont pas chiffrés par Sprog : protège ton appareil et tes fichiers. L’hébergeur reçoit les requêtes nécessaires au chargement du site.</p><p><a href="privacy.html">Lire les informations de confidentialité</a></p></section>' +
-    '<section class="card"><h2>Aide</h2><p>Une charge vide correspond à 0 kg (poids du corps). Seules les séries validées sont ajoutées à l’historique. « Quitter » garde la séance en cours ; « Abandonner » la supprime.</p><p><a href="https://github.com/Agassin/Sprog/issues" target="_blank" rel="noopener noreferrer">Signaler un problème</a> — n’inclus pas de données personnelles dans un signalement public.</p><p class="small mut">Sprog 2.0 · stockage local · programme fixe</p></section>';
+    '<section class="card"><h2>Aide</h2><p>Une charge vide correspond à 0 kg (poids du corps). Seules les séries validées sont ajoutées à l’historique. « Quitter » garde la séance en cours ; « Abandonner » la supprime.</p><p><a href="https://github.com/Agassin/Sprog/issues" target="_blank" rel="noopener noreferrer">Signaler un problème</a> — n’inclus pas de données personnelles dans un signalement public.</p><p class="small mut">Sprog 3.0 · stockage local · programme personnalisable</p></section>';
 }
 function history() {
-  const sessions = [...S.done].reverse();
+  const sessions = [...S.done].reverse().slice(0, historyLimit);
   return '<h1>Historique</h1>' + (sessions.length ? sessions.map(d => {
     const entries = Object.entries(S.logs).flatMap(([name, logs]) => logs.filter(l => l.d === d.d).map(l =>
       '<li><span>' + esc(name) + '</span><span>' + l.sets.map(s => esc(kgTxt(s.kg) + s.reps)).join(' · ') + '</span></li>')).join('');
-    return '<details class="card"><summary>' + esc(new Date(d.d).toLocaleDateString('fr-FR')) + ' · ' + esc(PROGRAM[d.n - 1].name) + ' · S' + d.w + '</summary><ul>' + entries + '</ul></details>';
-  }).join('') : '<p class="mut">Aucune séance terminée pour le moment.</p>') + '<button class="ghost" data-a="backProgress">Retour à la progression</button>';
+    return '<details class="card"><summary>' + esc(new Date(d.d).toLocaleDateString('fr-FR')) + ' · ' + esc(d.name || DEFAULT_PROGRAM[d.n - 1].name) + ' · S' + d.w + '</summary><ul>' + entries + '</ul><button class="ghost danger" data-a="deleteSession" data-v="' + esc(d.d) + '">Supprimer cette séance</button></details>';
+  }).join('') : '<p class="mut">Aucune séance terminée pour le moment.</p>') + (S.done.length > historyLimit ? '<button class="cta" data-a="moreHistory">Afficher 20 séances supplémentaires</button>' : '') + '<button class="ghost" data-a="backProgress">Retour à la progression</button>';
 }
 Object.assign(act, {
   previous() { if (S.cur?.i > 0) { clearRest(); S.cur.i--; save(); render(); } },
@@ -178,33 +183,34 @@ Object.assign(act, {
     if (index >= 0) { rows[index].ok = false; clearRest(); save(); render(); notice('Série modifiable.'); }
   },
   skipRest() { clearRest(); save(); render(); },
-  history() { V.tab = 'history'; render(); },
+  history() { historyLimit = 20; V.tab = 'history'; render(); },
   backProgress() { V.tab = 'prog'; render(); },
-  export() {
-    download('sprog-' + new Date().toISOString().slice(0, 10) + '.json', JSON.stringify({app:'Sprog', version:2, exportedAt:new Date().toISOString(), data:S}, null, 2));
-    notice('Export préparé. Conserve le fichier dans un endroit privé.');
+  async export() {
+    try { await download('sprog-' + new Date().toISOString().slice(0, 10) + '.json', JSON.stringify({app:'Sprog', version:3, exportedAt:new Date().toISOString(), data:S}, null, 2));
+    notice('Export préparé. Conserve le fichier dans un endroit privé.'); } catch { notice('Export impossible ou partage annulé. Réessaie sans fermer l’application.'); }
   },
-  raw() {
+  async raw() {
     try {
       const raw = storage.getItem(KEY); if (raw === null) return notice('Aucune donnée sauvegardée.');
-      download('sprog-donnees-brutes.json', raw); notice('Export brut préparé.');
+      await download('sprog-donnees-brutes.json', raw); notice('Export brut préparé.');
     } catch { notice('Le navigateur refuse l’accès au stockage.'); }
   },
   recover() {
     try {
       const raw = storage.getItem(KEY + '-avant-import');
       if (!raw) return notice('Aucune copie avant import disponible.');
-      const next = SprogData.validate(JSON.parse(raw), PROGRAM);
+      const next = SprogData.validate(JSON.parse(raw), DEFAULT_PROGRAM);
       if (!confirm('Remplacer les données actuelles par la copie avant import ? Exporte d’abord les données actuelles si nécessaire.')) return;
       storage.setItem(KEY, JSON.stringify(next));
       Object.assign(S, next); storageBlocked = false; syncRest(); render(); $('#storage-warning').hidden = true;
       notice('Copie restaurée.');
     } catch { notice('Copie illisible ou stockage indisponible. Aucune donnée remplacée.'); }
   },
-  reset() {
+  async reset() {
     if (!confirm('Effacer toutes les séances, mesures et copies locales de Sprog ? Cette action est irréversible. Exporte une sauvegarde avant de continuer.')) return;
     const next = SprogData.fresh();
     try {
+      if (window.NativeBridge?.isNative) await window.NativeBridge.clearExports();
       storage.removeItem(KEY + '-avant-import'); storage.removeItem(KEY + '-corrompu');
       storage.setItem(KEY, JSON.stringify(next));
     } catch { return notice('Effacement incomplet : utilise les réglages de ton navigateur pour supprimer les données du site.'); }
@@ -220,14 +226,14 @@ Object.assign(act, {
     if (waitingWorker) { updating = true; waitingWorker.postMessage({type:'SKIP_WAITING'}); }
   }
 });
-function syncRest() { rest = SprogData.remaining(S.cur?.restUntil || 0); restMax = S.cur?.restMax || 1; }
+function syncRest() { PROGRAM = S.program || DEFAULT_PROGRAM; MAP.splice(0, 7, ...S.schedule); rest = SprogData.remaining(S.cur?.restUntil || 0); restMax = S.cur?.restMax || 1; }
 async function importFile(file) {
   if (!file) return;
   try {
     if (file.size > 5 * 1024 * 1024) throw new Error('Fichier trop volumineux (maximum 5 Mo).');
     const parsed = JSON.parse(await file.text());
-    if (parsed.app !== undefined && (parsed.app !== 'Sprog' || parsed.version !== 2)) throw new Error('Format de sauvegarde non pris en charge.');
-    const next = SprogData.validate(parsed.app === 'Sprog' ? parsed.data : parsed, PROGRAM);
+    if (parsed.app !== undefined && (parsed.app !== 'Sprog' || ![2,3].includes(parsed.version))) throw new Error('Format de sauvegarde non pris en charge.');
+    const next = SprogData.validate(parsed.app === 'Sprog' ? parsed.data : parsed, DEFAULT_PROGRAM);
     if (!confirm('Remplacer toutes les données par cette sauvegarde ? Les données actuellement enregistrées seront conservées dans une copie avant import.')) return;
     const previous = storage.getItem(KEY);
     if (previous !== null) storage.setItem(KEY + '-avant-import', previous);
@@ -241,7 +247,7 @@ window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); instal
 window.addEventListener('appinstalled', () => { installPrompt = null; notice('Sprog est installé.'); });
 function networkStatus() { $('#network').hidden = navigator.onLine; }
 window.addEventListener('online', networkStatus); window.addEventListener('offline', networkStatus); networkStatus();
-if ('serviceWorker' in navigator) {
+if ('serviceWorker' in navigator && !window.NativeBridge?.isNative) {
   navigator.serviceWorker.addEventListener('controllerchange', () => { if (updating) location.reload(); });
   navigator.serviceWorker.register('sw.js').then(registration => {
     function offer() { if (registration.waiting && navigator.serviceWorker.controller) { waitingWorker = registration.waiting; $('#update-banner').hidden = false; } }
@@ -255,5 +261,64 @@ if ('serviceWorker' in navigator) {
 window.addEventListener('storage', e => {
   if (e.key === KEY) { storageBlocked = true; storageWarning('Les données ont changé dans une autre fenêtre. Exporte tes changements si nécessaire, puis recharge pour éviter de les écraser.'); }
 });
+let programDraft = null, editorSession = 0, editorDirty = false;
+function leaveEditor() {
+  if (V.tab === 'editor' && editorDirty && !confirm('Quitter sans enregistrer les modifications du programme ?')) return false;
+  editorDirty = false; return true;
+}
+function editor() {
+  const p = programDraft.program[editorSession];
+  const days = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+  return `<h1>Mon programme</h1><p class="mut">Personnalise cinq modèles de séance et choisis tes jours. Renommer un exercice crée une nouvelle courbe ; son ancien historique reste accessible.</p>
+<section class="card form"><h2>Planning</h2>${days.map((day,i) => `<label>${day}<select data-schedule="${i}">${[0,1,2,3,4,5].map(n => `<option value="${n}" ${programDraft.schedule[i] === n ? 'selected' : ''}>${n ? 'Séance '+n : 'Repos'}</option>`).join('')}</select></label>`).join('')}</section>
+<label class="form">Séance à modifier<select id="editor-session">${programDraft.program.map((p,i) => `<option value="${i}" ${i === editorSession ? 'selected' : ''}>${i+1} · ${esc(p.name)}</option>`).join('')}</select></label>
+<section class="card form"><label>Nom de la séance<input data-edit="name" maxlength="120" value="${esc(p.name)}"></label><label>Durée indicative<input data-edit="dur" maxlength="40" value="${esc(p.dur)}"></label></section>
+${p.ex.map((e,i) => `<section class="card form"><h2>Exercice ${i+1}</h2><label>Nom<input data-ex="${i}" data-col="0" maxlength="120" value="${esc(e[0])}"></label><label>Séries (1–10)<input data-ex="${i}" data-col="1" inputmode="numeric" value="${esc(e[1])}"></label><label>Répétitions (ex. 8–12)<input data-ex="${i}" data-col="2" maxlength="30" value="${esc(e[2])}"></label><label>Repos en secondes<input data-ex="${i}" data-col="3" inputmode="numeric" value="${esc(e[3])}"></label><div class="top"><button class="ghost" data-a="moveExercise" data-v="${i}" ${i ? '' : 'disabled'}>Monter</button><button class="ghost danger" data-a="removeExercise" data-v="${i}" ${p.ex.length > 1 ? '' : 'disabled'}>Supprimer</button></div></section>`).join('')}
+<button class="ghost" data-a="addExercise" ${p.ex.length >= 30 ? 'disabled' : ''}>Ajouter un exercice</button><button class="cta" data-a="saveProgram">Enregistrer le programme</button><button class="ghost" data-a="cancelEditor">Annuler</button><button class="ghost danger" data-a="defaultProgram">Revenir au programme initial</button>`;
+}
+Object.assign(act, {
+  editProgram() {
+    if (S.cur) return notice('Termine ou abandonne la séance en cours avant de modifier le programme.');
+    if (storageBlocked) return notice('Restaure tes données dans Réglages avant de modifier le programme.');
+    programDraft = {program:JSON.parse(JSON.stringify(PROGRAM)), schedule:[...MAP]};
+    editorSession = 0; editorDirty = false; V.tab = 'editor'; render();
+  },
+  saveProgram() {
+    if (S.cur) return notice('Une séance est en cours.');
+    try {
+      const next = SprogData.validate({...S, program:programDraft.program, schedule:programDraft.schedule}, DEFAULT_PROGRAM);
+      Object.assign(S,next); syncRest(); editorDirty = false; V.tab = 'home';
+      const saved = save(); render(); notice(saved ? 'Programme enregistré.' : 'Programme en mémoire uniquement. Exporte une sauvegarde.');
+    } catch(error) { notice(error.message); }
+  },
+  addExercise() { const ex = programDraft.program[editorSession].ex; if (ex.length < 30) { ex.push(['Nouvel exercice',3,'8–12',90]); editorDirty = true; render(); } },
+  removeExercise(v) { const ex = programDraft.program[editorSession].ex; if (ex.length > 1 && confirm('Supprimer cet exercice du programme ? Son historique sera conservé.')) { ex.splice(+v,1); editorDirty = true; render(); } },
+  moveExercise(v) { const i = +v, ex = programDraft.program[editorSession].ex; if (i > 0) { [ex[i-1],ex[i]]=[ex[i],ex[i-1]]; editorDirty = true; render(); } },
+  cancelEditor() { if (leaveEditor()) {V.tab = 'settings';render();} },
+  defaultProgram() { if (confirm('Remplacer le brouillon par le programme et le planning initiaux ?')) {programDraft={program:JSON.parse(JSON.stringify(DEFAULT_PROGRAM)),schedule:[1,2,3,0,4,5,0]};editorDirty=true;render();} },
+  theme() { S.theme = S.theme === 'dark' ? 'light' : 'dark'; save(); render(); },
+  moreHistory() {historyLimit += 20; render();},
+  deleteSession(d) {
+    if (!confirm('Supprimer cette séance et ses séries de l’historique ?')) return;
+    S.done = S.done.filter(x => x.d !== d);
+    for (const name of Object.keys(S.logs)) {S.logs[name] = S.logs[name].filter(x => x.d !== d);if (!S.logs[name].length) delete S.logs[name];}
+    save(); render();
+  }
+});
+document.addEventListener('input', e => {
+  if (V.tab !== 'editor' || !programDraft) return;
+  const t = e.target, p = programDraft.program[editorSession];
+  if (t.dataset.edit) {p[t.dataset.edit]=t.value;editorDirty=true;}
+  if (t.dataset.ex !== undefined) { const col = +t.dataset.col; p.ex[+t.dataset.ex][col] = [1,3].includes(col) ? Number(t.value) : t.value;editorDirty=true; }
+});
+document.addEventListener('change', e => {
+  if (V.tab !== 'editor' || !programDraft) return;
+  if (e.target.id === 'editor-session') {editorSession=+e.target.value;render();}
+  if (e.target.dataset.schedule !== undefined) {programDraft.schedule[+e.target.dataset.schedule]=+e.target.value;editorDirty=true;}
+});
+window.addEventListener('beforeunload', e => {if (editorDirty) {e.preventDefault();e.returnValue='';}});
+
+window.addEventListener('sprog-back', () => { if (!leaveEditor()) return; if (V.tab !== 'home') {V.tab='home';render();} else window.NativeBridge?.minimize(); });
+let historyLimit = 20;
 render();
 if (storageBlocked) storageWarning('Données illisibles ou stockage indisponible. Les données originales sont préservées. Ouvre Réglages pour exporter les données brutes ou restaurer une sauvegarde.');

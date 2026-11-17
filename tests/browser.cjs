@@ -81,6 +81,15 @@ async function main() {
     await check('document.documentElement.scrollWidth <= innerWidth', 'Session overflow at 320px');
     await evaluate("S.cur.restUntil = Date.now()-1000; save(); tick()");
     await check("document.querySelector('#rest').textContent === '00:00'", 'Expired timer');
+    await evaluate('window.confirm = () => true');
+    await evaluate('act.drop(); act.editProgram()');
+    await check("document.querySelector('#app h1').textContent === 'Mon programme'", 'Editor opens');
+    await check('document.documentElement.scrollWidth <= innerWidth', 'Editor at 320px');
+    await evaluate(`document.querySelector('[data-edit="name"]').value='Séance personnalisée'; document.querySelector('[data-edit="name"]').dispatchEvent(new Event('input',{bubbles:true})); document.querySelector('[data-ex="0"][data-col="0"]').value='<img src=x onerror=alert(1)>'; document.querySelector('[data-ex="0"][data-col="0"]').dispatchEvent(new Event('input',{bubbles:true})); document.querySelector('[data-a="saveProgram"]').click()`);
+    await evaluate("act.day('0'); act.start('1')");
+    await check("!document.querySelector('#app img') && document.querySelector('#app h1').textContent.includes('<img')", 'Custom names escaped in real DOM');
+    await evaluate("S.cur.sets[0][0] = {kg:40.5,reps:6,ok:true};save();act.quit();act.theme()");
+    await check("document.body.getAttribute('data-theme') === 'light'", 'Light theme applied');
     await send('Network.setCacheDisabled',{cacheDisabled:true});
     // Stop the origin server: a reload must now be served by the actual worker.
     await new Promise(resolve => {server.close(resolve); server.closeAllConnections();});
@@ -88,6 +97,7 @@ async function main() {
     await send('Page.reload',{ignoreCache:true});
     await until("!window.__sprogReloadProbe && typeof S !== 'undefined' && !!document.querySelector('#app h1')");
     await check('S.cur.sets[0][0].kg === 40.5', 'Offline reload preserves session');
+    await check("PROGRAM[0].name === 'Séance personnalisée' && S.theme === 'light'", 'Custom program and theme survive offline reload');
     await evaluate("document.querySelector('[data-t=\"settings\"]').click()");
     await check("document.querySelector('#app').textContent.includes('Confidentialité')", 'Settings work offline');
     await send('Page.navigate',{url:'http://127.0.0.1:' + port + '/Sprog/privacy.html'});

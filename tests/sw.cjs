@@ -10,14 +10,14 @@ module.exports = async function testWorker(source) {
     addEventListener(type, callback){handlers[type] = callback;}
   };
   const cache = {addAll:async urls => {installed = urls;}, match:async key => cached.get(key)};
-  const caches = {open:async () => cache, keys:async () => ['sprog-v3','sprog-v4','unrelated-app'],delete:async key => {removed.push(key);}};
+  const caches = {open:async () => cache, keys:async () => ['sprog-v3','sprog-v4','sprog-v5','unrelated-app'],delete:async key => {removed.push(key);}};
   new Function('self','caches','fetch','URL',source)(self,caches,async () => 'network', URL);
   let pending;
   handlers.install({waitUntil:p => {pending = p;}}); await pending;
   check(installed.includes('https://example.org/Sprog/data.js'), 'Data module precached');
   check(installed.includes('https://example.org/Sprog/privacy.html'), 'Privacy available offline');
   handlers.activate({waitUntil:p => {pending = p;}}); await pending;
-  check(removed.join() === 'sprog-v3', 'Other apps caches preserved');
+  check(removed.join() === 'sprog-v3,sprog-v4', 'Other apps caches preserved');
   check(claimed, 'Clients claimed');
   handlers.message({data:{type:'SKIP_WAITING'}}); check(skipped, 'User-controlled activation');
   cached.set('https://example.org/Sprog/index.html', 'offline-shell');

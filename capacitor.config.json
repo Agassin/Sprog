@@ -1,0 +1,8 @@
+{
+  "appId": "fr.agassin.sprog",
+  "appName": "Sprog",
+  "webDir": "dist",
+  "backgroundColor": "#0F1115",
+  "android": {"allowMixedContent": false},
+  "server": {"androidScheme": "https"}
+}

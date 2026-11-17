@@ -1,13 +1,27 @@
 {
   "name": "sprog",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "private": true,
   "description": "Suivi de musculation PWA, local et hors ligne",
   "scripts": {
     "test": "node tests/run.cjs",
-    "check": "node --check app.js && node --check data.js && node --check program.js && node --check sw.js"
+    "check": "node --check app.js && node --check data.js && node --check program.js && node --check sw.js",
+    "build": "node scripts/build.cjs",
+    "android:prepare": "node scripts/android.cjs",
+    "test:browser": "node tests/browser.cjs"
   },
   "engines": {
     "node": ">=22"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.6.2",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/core": "8.6.2",
+    "@capacitor/filesystem": "8.1.5",
+    "@capacitor/share": "8.0.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.6.2",
+    "esbuild": "0.27.7"
   }
 }

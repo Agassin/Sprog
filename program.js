@@ -1,5 +1,5 @@
 // Programme salle 12 semaines — [exercice, séries, répétitions, repos en secondes]
-const PROGRAM = [
+let PROGRAM = [
   { n: 1, name: "Haut du corps — force", dur: "65–80 min", ex: [
     ["Développé couché (barre ou machine)", 3, "5–7", 150],
     ["Rowing poitrine appuyée", 3, "6–8", 120],

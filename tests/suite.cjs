@@ -15,12 +15,20 @@ module.exports = function runTests(D, programSource, appSource) {
   check(D.week('2026-03-23T10:00:00Z', new Date('2026-03-30T10:00:00Z')) === 2, 'DST week');
   check(D.week('2026-10-19T10:00:00Z', new Date('2026-10-26T10:00:00Z')) === 2, 'Autumn DST');
   const fresh = D.fresh();
-  check(D.validate(fresh, PROGRAM).schema === 2, 'Current schema');
+  check(D.validate(fresh, PROGRAM).schema === 3, 'Current schema');
   const legacy = {...fresh}; delete legacy.schema;
-  check(D.validate(legacy, PROGRAM).schema === 2, 'Legacy migration');
+  check(D.validate(legacy, PROGRAM).schema === 3, 'Legacy migration');
   for (const bad of [null, [], {...fresh, schema:999}, {...fresh, logs:{'<script>':[]}}, {...fresh, cur:{n:99}}, {...fresh, body:[{w:1, kg:-2, cm:90, en:4}]}]) {
     rejects(() => D.validate(bad, PROGRAM), 'Reject bad schema');
   }
+  const custom = JSON.parse(JSON.stringify(PROGRAM));
+  custom[0].name = 'Mon entraînement'; custom[0].ex[0][0] = '<img src=x onerror=alert(1)>';
+  check(D.validateProgram(custom)[0].name === 'Mon entraînement', 'Custom program valid');
+  const customState = D.validate({...fresh, program:custom, schedule:[0,1,2,3,4,5,0]}, PROGRAM);
+  check(customState.program[0].ex[0][0].startsWith('<img'), 'Editable names treated as text');
+  rejects(() => D.validateProgram(custom.map((p,i) => i ? p : {...p,ex:[['__proto__',3,'8–12',90]]})), 'Prototype key rejected');
+  rejects(() => D.validateProgram(custom.map((p,i) => i ? p : {...p,ex:[['Test',3,'12–8',90]]})), 'Reversed reps rejected');
+  rejects(() => D.validate({...fresh, schedule:[9]}, PROGRAM), 'Invalid schedule rejected');
   let writes = 0;
   check(!!D.read({getItem(){return '{broken';},setItem(){writes++;}}, PROGRAM).error, 'Corrupt data detected');
   check(writes === 0, 'Corrupt data never overwritten');
@@ -41,6 +49,10 @@ module.exports = function runTests(D, programSource, appSource) {
     const instance = make(D, document, window, {onLine:true}, () => 0, () => true, {reload(){}});
     return {...instance, nodes, memory, node};
   }
+  const customApp = app(customState); customApp.act.day('1');
+  check(!customApp.node('#app').innerHTML.includes('<img'), 'Custom exercise escaped on home');
+  customApp.act.start('1');
+  check(!customApp.node('#app').innerHTML.includes('<img'), 'Custom exercise escaped in session');
   const a = app();
   for (const tab of ['home','seance','prog','suivi','settings','history']) {
     a.V.tab = tab; a.render(); check(a.node('#app').innerHTML.includes('<h1>'), 'Render ' + tab);
