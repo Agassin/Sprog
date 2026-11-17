@@ -29,6 +29,7 @@ module.exports = function runTests(D, programSource, appSource) {
   rejects(() => D.validateProgram(custom.map((p,i) => i ? p : {...p,ex:[['__proto__',3,'8–12',90]]})), 'Prototype key rejected');
   rejects(() => D.validateProgram(custom.map((p,i) => i ? p : {...p,ex:[['Test',3,'12–8',90]]})), 'Reversed reps rejected');
   rejects(() => D.validate({...fresh, schedule:[9]}, PROGRAM), 'Invalid schedule rejected');
+  rejects(() => D.validateProgram(custom.map((p,i) => i ? p : {...p,ex:[[' constructor ',3,'8–12',90]]})), 'Trimmed prototype key rejected');
   let writes = 0;
   check(!!D.read({getItem(){return '{broken';},setItem(){writes++;}}, PROGRAM).error, 'Corrupt data detected');
   check(writes === 0, 'Corrupt data never overwritten');

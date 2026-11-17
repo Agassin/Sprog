@@ -21,7 +21,7 @@
     const ordinal = d => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
     return Math.max(1, Math.round((ordinal(monday(now)) - ordinal(monday(new Date(start)))) / 604800000) + 1);
   }
-  const safeName = value => typeof value === 'string' && value.trim().length > 0 && value.length <= 120 && !['__proto__', 'constructor', 'prototype'].includes(value);
+  const safeName = value => typeof value === 'string' && value.trim().length > 0 && value.length <= 120 && !Object.prototype.hasOwnProperty.call(Object.prototype, value.trim()) && value.trim() !== 'prototype';
   function validateProgram(program) {
     if (!Array.isArray(program) || program.length !== 5) throw new Error('Le programme doit contenir cinq modèles de séance.');
     return program.map((p, i) => {

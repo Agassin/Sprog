@@ -1,74 +1,71 @@
-# Sprog
+# Sprog 3
 
-Application web mobile installable (PWA) de suivi d’un programme de musculation : cinq séances par semaine, cycles de douze semaines, séries, repos, progression et mesures corporelles. Interface française, HTML/CSS/JavaScript sans dépendance de production et sans compilation.
+Application personnelle de musculation : programme modifiable, planning hebdomadaire, séances, repos, progression et mesures corporelles. Disponible comme **PWA installable** et projet **Android Capacitor**. Aucun compte, abonnement, serveur de données ou suivi publicitaire.
+
+## Utiliser
+
+Ouvrir **https://agassin.github.io/Sprog/**. Sur Android, choisir « Installer l’application » dans le navigateur ; sur iPhone, utiliser Safari → Partager → Sur l’écran d’accueil. Le premier chargement web doit se faire en ligne.
+
+La version Android contient l’application et fonctionne dès le premier lancement sans réseau. Les fichiers APK de test sont disponibles dans les artefacts des exécutions réussies de [la CI](https://github.com/Agassin/Sprog/actions). Ils ne constituent pas une publication Play Store. Voir [ANDROID.md](docs/ANDROID.md).
 
 ## Fonctionnalités
 
-- Programme hebdomadaire et reprise de séance après fermeture.
-- Charges et répétitions validées, correction de la dernière série, retour à l’exercice précédent.
-- Repos sauvegardé sous forme d’échéance : le temps restant est recalculé après veille. Pas d’alarme garantie lorsque l’application est suspendue ou fermée.
-- Courbes de charge, records et historique détaillé des séances.
-- Suivi hebdomadaire du poids, du tour de taille et de l’énergie.
-- Réglages : installation, export JSON, import validé, copie avant import, récupération et effacement des données.
-- Mode hors ligne après chargement complet initial. Mise à jour proposée et appliquée hors séance.
-- Stockage défaillant ou corrompu signalé, données illisibles préservées.
-- Navigation clavier, annonces accessibles, focus visible, zones sûres et petits écrans.
+- Cinq modèles de séance modifiables : noms, exercices, ordre, séries, répétitions, repos et durée indicative.
+- Planning configurable sur sept jours, avec jours de repos.
+- Reprise de séance, correction de série, retour à l’exercice précédent, abandon confirmé.
+- Minuteur basé sur l’heure réelle et conservé après fermeture/veille. L’alarme en arrière-plan n’est pas garantie.
+- Progression des charges (100 dernières observations), records et historique paginé par 20 séances.
+- Suppression d’une séance de l’historique et de ses séries.
+- Suivi du poids, du tour de taille et de l’énergie.
+- Thèmes clair/sombre, navigation clavier, annonces et dispositions mobiles.
+- Export/restauration JSON, copie avant import, effacement local et récupération des données brutes.
+- Hors ligne et mises à jour web proposées hors séance.
+- Sur Android : bouton Retour et partage natif du fichier de sauvegarde.
 
-## Démarrer
+## Données et migrations
 
-Servir le dossier depuis un serveur HTTP local, par exemple :
+La clé historique `sprog-v1` est conservée ; le schéma interne est désormais **3**. Les schémas historiques sans numéro et la version 2 sont lus et migrés. Les exports v2 restent importables. Les noms des séances terminées sont conservés lors des modifications du programme. Renommer un exercice crée une nouvelle courbe et préserve l’ancienne.
+
+Une sauvegarde illisible n’est pas écrasée automatiquement. Un stockage refusé ou plein déclenche un avertissement ; exporter les changements en mémoire avant de fermer. L’import validé (5 Mo maximum) remplace les données après confirmation et conserve une copie avant import, récupérable dans Réglages. Une modification détectée dans un autre onglet bloque les écritures jusqu’au rechargement.
+
+La PWA et l’application Android ont des stockages séparés : utiliser export/import pour transférer les données. Les sauvegardes sont en clair. Voir [Confidentialité](privacy.html).
+
+## Développement web
+
+Node 22 ou ultérieur. L’application web source reste utilisable sans compilation :
 
 ```bash
 python3 -m http.server 8000
+# ouvrir http://localhost:8000
 ```
 
-Ouvrir http://localhost:8000. Le service worker nécessite HTTPS en production (localhost est accepté en développement). Ne pas ouvrir directement index.html en file://.
-
-Pour GitHub Pages : sélectionner la branche voulue dans les paramètres Pages. Les URL relatives prennent en charge le sous-dossier /Sprog/. Cette documentation ne signifie pas qu’un déploiement a été réalisé.
-
-## Installer
-
-- Android : ouvrir le site dans un navigateur compatible et choisir Installer dans son menu ou dans Réglages si le bouton est disponible.
-- iPhone/iPad : Safari → Partager → Sur l’écran d’accueil.
-- Charger complètement l’application en ligne avant son premier usage hors ligne.
-
-Sprog est une PWA, pas un binaire Android/iOS publié dans un store.
-
-## Données
-
-Le stockage principal conserve la clé historique `sprog-v1`, avec un schéma interne version 2. Les données de l’ancienne version sont validées et migrées en mémoire ; aucune suppression automatique de données corrompues n’est effectuée.
-
-Exporter régulièrement depuis Réglages. Une sauvegarde JSON contient des données personnelles en clair. L’import remplace les données après confirmation et conserve la version précédemment enregistrée dans `sprog-v1-avant-import`. Cette copie est récupérable dans Réglages. L’export brut sert à récupérer un stockage devenu illisible. Un import doit être valide et inférieur ou égal à 5 Mo.
-
-Une erreur de quota ou un stockage refusé déclenche un avertissement : ne pas fermer avant d’exporter les changements en mémoire. Une modification détectée dans un autre onglet bloque les nouvelles écritures jusqu’au rechargement, pour éviter un écrasement silencieux.
-
-Il n’y a pas de compte, synchronisation cloud, sauvegarde distante automatique ni télémétrie. Voir [Confidentialité](privacy.html).
-
-## Vérifier
-
-Node.js 22 ou ultérieur ; aucune installation npm nécessaire :
+Le service worker nécessite HTTPS en production (localhost est accepté). Les chemins relatifs permettent un hébergement dans `/Sprog/`.
 
 ```bash
+npm ci
 npm run check
 npm test
+npm run build
+npm run test:browser
 ```
 
-La CI exécute ces commandes avec les fuseaux Europe/Paris et America/New_York. Les tests couvrent la validation, la migration, le stockage, les actions de séance, le minuteur, l’import et le service worker. Le faux DOM des tests de logique est complété par des tests Chrome headless à 320 px : navigation, saisie et rechargement hors ligne après arrêt du serveur. Ils s’exécutent avec `node tests/browser.cjs` (Chrome installé, éventuellement via `CHROME_BIN`). Ils ne remplacent pas une recette sur téléphone.
+Le test navigateur nécessite Google Chrome (`CHROME_BIN=chromium` si nécessaire). `dist/` contient uniquement les ressources publiables. GitHub Pages utilise le dossier racine de `main` ; `.nojekyll` désactive le traitement Jekyll. Les scripts de développement ne sont pas nécessaires à l’exécution web et ne contiennent aucun secret.
 
-Voir [l’audit et la recette mobile](docs/AUDIT_MOBILE.md) avant publication.
+## Android
 
-## Structure
+```bash
+npm ci
+npm run android:prepare
+cd android
+./gradlew assembleDebug lintDebug
+```
 
-| Fichier | Rôle |
-|---|---|
-| program.js | Programme sportif fixe |
-| data.js | Validation, migration, dates et calcul du repos |
-| app.js | Écrans, actions, sauvegardes et installation |
-| style.css | Apparence responsive et accessibilité |
-| sw.js | Cache versionné des ressources de l’application |
-| manifest.webmanifest | Identité et installation PWA |
-| privacy.html | Informations sur le traitement des données |
-| tests/ | Tests sans dépendance |
-| .github/workflows/ci.yml | Vérifications automatiques |
+Java 21 et Android SDK 36 requis. `android/` est généré à partir de versions Capacitor verrouillées ; les personnalisations reproductibles sont dans `scripts/android.cjs`. Ne pas y effectuer des modifications manuelles destinées à être conservées sans les reporter dans ce script. Aucun keystore de production n’est inclus.
 
-Pour chaque modification d’une ressource, incrémenter la version du cache dans sw.js et garder sa liste de fichiers à jour. Les ressources d’une version sont conservées ensemble pour éviter de mélanger plusieurs versions de scripts.
+## Vérifications et publication
+
+La CI exécute les tests Node dans deux fuseaux, les parcours Chrome à 320 px, la compilation/lint Android et un lancement sur émulateur Android. Le rapport d’audit distingue ces tests d’une recette sur téléphone physique.
+
+Avant chaque version web, incrémenter le cache dans `sw.js`. Ne pas supprimer les données utilisateur pour appliquer une mise à jour. Après une mise à jour depuis l’ancienne version, fermer toutes les fenêtres Sprog puis rouvrir si le navigateur conserve encore l’ancien service worker.
+
+Voir [l’audit](docs/AUDIT_MOBILE.md) et [la distribution Android](docs/ANDROID.md).
