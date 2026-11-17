@@ -1,11 +1,26 @@
-const C = 'sprog-v3', F = ['./', 'index.html', 'style.css', 'program.js', 'app.js', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'icon-180.png'];
-self.addEventListener('install', e => e.waitUntil(caches.open(C).then(c => c.addAll(F))));
-self.addEventListener('activate', e => e.waitUntil(caches.keys().then(k => Promise.all(k.filter(x => x !== C).map(x => caches.delete(x))))));
-// Cache d'abord (hors ligne), mis à jour en arrière-plan pour recevoir les nouvelles versions
-self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET') return;
-  e.respondWith(caches.match(e.request).then(r => {
-    const net = fetch(e.request).then(n => { if (n.ok) caches.open(C).then(c => c.put(e.request, n.clone())); return n; }).catch(() => r || Response.error());
-    return r || net;
+/* Bump the cache version whenever an application asset changes. */
+const CACHE = 'sprog-v5';
+const FILES = ['./', 'index.html', 'style.css', 'program.js', 'data.js', 'app.js', 'privacy.html', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'icon-180.png'];
+const URLS = FILES.map(path => new URL(path, self.registration.scope).href);
+self.addEventListener('install', event => {
+  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(URLS)));
+});
+self.addEventListener('message', event => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+});
+self.addEventListener('activate', event => {
+  event.waitUntil(caches.keys().then(keys => Promise.all(
+    keys.filter(key => /^sprog-v[0-9]+$/.test(key) && key !== CACHE).map(key => caches.delete(key))
+  )).then(() => self.clients.claim()));
+});
+self.addEventListener('fetch', event => {
+  const url = new URL(event.request.url);
+  if (event.request.method !== 'GET' || url.origin !== self.location.origin) return;
+  const canonical = url.origin + url.pathname;
+  if (!URLS.includes(canonical)) return;
+  event.respondWith(caches.open(CACHE).then(async cache => {
+    const cached = await cache.match(canonical);
+    // A release is an immutable app shell: never mix JS from different releases.
+    return cached || fetch(event.request);
   }));
 });
