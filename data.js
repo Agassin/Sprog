@@ -44,6 +44,7 @@
     const w = n => number(n, 1, 100000, true);
     const set = s => object(s) && number(s.kg, 0, 2000) && number(s.reps, 1, 1000, true);
     const out = fresh(); out.start = input.start;
+    if (input.toji === true) out.toji = true;
     if (input.program != null) { out.program = validateProgram(input.program); program = out.program; }
     if (input.schedule !== undefined) {
       if (!Array.isArray(input.schedule) || input.schedule.length !== 7 || !input.schedule.every(n => number(n,0,5,true))) fail();

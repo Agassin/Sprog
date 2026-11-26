@@ -27,8 +27,22 @@ const lastLog = n => (S.logs[n] || []).at(-1);
 const clock = s => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 const kgTxt = k => k > 0 ? `${fmt(k)} kg × ` : '';
 
+function cycleLabel() {
+  if (!S.toji) return `Cycle ${cy()} · semaine ${wc()} sur 12`;
+  if (new Date() < TOJI_START) return 'Objectif Toji · début lundi 30 novembre 2026';
+  const w = SprogData.week(TOJI_START);
+  return w <= 8 ? `Objectif Toji · semaine ${w} sur 8` : 'Objectif Toji · bloc terminé le 24 janvier 2027';
+}
+function tojiTip() {
+  const w = SprogData.week(TOJI_START);
+  if (w === 1) return 'Échauffement progressif, puis garde 3 répétitions en réserve.';
+  if (w < 5) return 'Garde 1 à 2 répétitions en réserve. Au sommet de la fourchette sur toutes les séries, monte la charge ou réduis l’assistance.';
+  if (w < 8) return 'Garde le volume tant que tu progresses. Si la fatigue persiste, retire environ un tiers des séries pendant une semaine.';
+  return 'Bilan du cycle : compare les charges, les tractions et le tour de taille.';
+}
 function home() {
-  const w = week(), n = MAP[V.day], P = PROGRAM[n - 1], m = mon();
+  const w = week(), n = MAP[V.day], P = PROGRAM[n - 1], m = S.toji && new Date() < TOJI_START ? TOJI_START : mon();
+  const cardio = S.toji ? [2,4].includes(V.day) : V.day === 3;
   const strip = DAYS.map((l, i) => {
     const t = MAP[i], d = new Date(m); d.setDate(d.getDate() + i);
     const ok = t && S.done.some(x => x.n === t && new Date(x.d).toDateString() === d.toDateString());
@@ -36,8 +50,8 @@ function home() {
   }).join('');
   const card = n
     ? `<section class="card"><div class="lbl">SÉANCE ${n}</div><h2>${esc(P.name)}</h2><p class="mut">${P.ex.length} exercices · ${esc(P.dur)}</p><ul>${P.ex.map(e => `<li><span>${esc(e[0])}</span><span class="mut">${e[1]} × ${esc(e[2])}</span></li>`).join('')}</ul><button class="cta" data-a="start" data-v="${n}">${S.cur && S.cur.n === n ? 'Reprendre la séance' : 'Commencer la séance'}</button></section>`
-    : `<section class="card"><h2>${V.day === 3 ? 'Repos actif' : 'Repos'}</h2><p class="mut">${V.day === 3 ? 'Marche ou cardio facile, 20–35 min.' : 'Récupération, marche facultative.'}</p></section>`;
-  return `${!S.done.length && !S.cur ? '<section class="card"><p>Bienvenue dans Sprog. Choisis un jour, démarre ta séance et valide chaque série. Pense à exporter tes données dans Réglages.</p></section>' : ''}<p class="lbl mut">Cycle ${cy()} · semaine ${wc()} sur 12</p><h1>${n ? 'Séance ' + n + ' · ' + esc(P.name.split(' — ')[0]) : 'Jour de repos'}</h1><div class="bar"><i style="width:${wc() / 12 * 100}%"></i></div><div class="strip">${strip}</div>${card}<p class="mut small">${TIPS.find(t => wc() <= t[0])[1]}</p>`;
+    : `<section class="card"><h2>${cardio ? 'Repos actif' : 'Repos'}</h2><p class="mut">${cardio ? (S.toji ? 'Vélo ou marche facile, 15–25 min selon ta récupération.' : 'Marche ou cardio facile, 20–35 min.') : 'Récupération, marche facultative.'}</p></section>`;
+  return `${!S.toji ? '<section class="card"><h2>Objectif Toji</h2><p>Du 30 novembre au 24 janvier · 4 séances par semaine.</p><button data-a="toji">Activer le programme Toji</button></section>' : ''}${!S.done.length && !S.cur ? '<section class="card"><p>Bienvenue dans Sprog. Choisis un jour, démarre ta séance et valide chaque série. Pense à exporter tes données dans Réglages.</p></section>' : ''}<p class="lbl mut">${cycleLabel()}</p><h1>${n ? 'Séance ' + n + ' · ' + esc(P.name.split(' — ')[0]) : 'Jour de repos'}</h1><div class="bar"><i style="width:${S.toji ? (new Date() < TOJI_START ? 0 : Math.min(8,SprogData.week(TOJI_START)) / 8 * 100) : wc() / 12 * 100}%"></i></div><div class="strip">${strip}</div>${card}<p class="mut small">${S.toji ? tojiTip() : TIPS.find(t => wc() <= t[0])[1]}</p>`;
 }
 
 function seance() {
@@ -54,10 +68,10 @@ function seance() {
     : 'Première fois : commence léger et soigne la technique.';
   return `<div class="top"><button class="ghost" data-a="quit">‹ Quitter</button><span id="clk" class="clk">${clock(Math.floor((Date.now() - c.t0) / 1000))}</span></div>
 <p class="lbl">EXERCICE ${c.i + 1} SUR ${P.ex.length}</p><h1>${esc(name)}</h1>
-<p class="mut">${ns} × ${esc(reps)} · repos ${rs >= 120 ? rs / 60 + ' min' : rs + ' s'} · garde 1–2 reps en réserve</p>
+<p class="mut">${ns} × ${esc(reps)} · repos ${rs >= 120 ? rs / 60 + ' min' : rs + ' s'} · ${S.toji && SprogData.week(TOJI_START) === 1 ? 'garde 3 reps en réserve' : 'garde 1–2 reps en réserve'}</p>
 <section class="card rest"><div class="lbl mut">REPOS</div><div id="rest" class="big">${clock(S.cur.restUntil ? rest : rs)}</div><div class="bar"><i id="restbar" style="width:${rest ? rest / restMax * 100 : 0}%"></i></div></section>
-<div class="sets"><div class="set hd"><span>SÉRIE</span><span>CHARGE (KG)</span><span>REPS</span><i></i></div>${rows}</div>
-<p class="mut small">${hint}</p>
+<div class="sets"><div class="set hd"><span>SÉRIE</span><span>${name === 'Tractions assistées' ? 'ASSISTANCE (KG)' : 'CHARGE (KG)'}</span><span>${name.includes('(secondes') ? 'SEC / CÔTÉ' : name.includes('(minutes)') ? 'MIN' : 'REPS'}</span><i></i></div>${rows}</div>
+<p class="mut small">${name === 'Tractions assistées' ? 'Note les kilos d’assistance. À 3 × 10 propres, réduis l’assistance du plus petit cran.' : hint}</p>
 <button class="cta" data-a="${cur < 0 ? 'next' : 'valid'}">${cur < 0 ? (lastEx ? 'Terminer la séance' : 'Exercice suivant') : 'Valider la série ' + (cur + 1)}</button>
 <div class="top"><button class="ghost" data-a="previous" ${c.i === 0 ? 'disabled' : ''}>Exercice précédent</button><button class="ghost" data-a="undo" ${sets.some(s => s.ok) ? '' : 'disabled'}>Corriger la dernière série</button></div>
 <button class="ghost" data-a="skipRest">Arrêter le repos</button>
@@ -80,12 +94,22 @@ function prog() {
 
 function suivi() {
   const w = week(), e = S.body.find(b => b.w === w) || {};
-  return `<h1>Suivi</h1><p class="mut">Semaine ${w} (cycle ${cy()}, semaine ${wc()} sur 12) : poids moyen, tour de taille et forme.</p>
+  return `<h1>Suivi</h1><p class="mut">Semaine ${w} (${cycleLabel()}) : poids moyen, tour de taille et forme.</p>
 <section class="card form"><label>Poids moyen (kg)<input id="b-kg" inputmode="decimal" value="${e.kg ? fmt(e.kg) : ''}"></label><label>Tour de taille (cm)<input id="b-cm" inputmode="decimal" value="${e.cm ? fmt(e.cm) : ''}"></label><label>Énergie / récupération (1–5)<input id="b-en" inputmode="numeric" value="${e.en || ''}"></label><button class="cta" data-a="body">Enregistrer</button></section>
 <ul class="hist">${[...S.body].sort((a, b) => b.w - a.w).map(b => `<li><span>S${b.w}</span><span>${b.kg ? fmt(b.kg) + ' kg' : '—'} · ${b.cm ? fmt(b.cm) + ' cm' : '—'} · énergie ${b.en || '—'}/5</span></li>`).join('')}</ul>`;
 }
 
 const act = {
+  toji() {
+    if (S.cur || storageBlocked) return notice('Termine la séance ou règle le problème de stockage avant de changer de programme.');
+    if (!confirm('Activer le cycle Toji et remplacer tes modèles et ton planning ? Ton historique et tes mesures seront conservés.')) return;
+    S.program = SprogData.validateProgram(TOJI_PROGRAM);
+    S.schedule = [...TOJI_SCHEDULE];
+    S.toji = true;
+    syncRest();
+    V.day = new Date() < TOJI_START ? 0 : today();
+    save(); render();
+  },
   day(v) { V.day = +v; render(); },
   start(v) {
     if (S.cur && S.cur.n !== +v && !confirm('Une séance est déjà en cours. La remplacer par la séance ' + v + ' ?')) return;

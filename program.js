@@ -41,3 +41,29 @@ let PROGRAM = [
     ["Crunch à la poulie", 3, "10–15", 60],
     ["Pallof press à la poulie", 2, "10–12 / côté", 60]] }
 ];
+
+// Cycle du lundi 30 novembre 2026 au dimanche 24 janvier 2027.
+const TOJI_START = new Date(2026, 10, 30);
+const TOJI_SCHEDULE = [1, 2, 0, 3, 0, 4, 0];
+const TOJI_PROGRAM = [
+  {n:1, name:'Haut A — pectoraux et dos', dur:'60–75 min', ex:[
+    ['Développé couché barre',3,'6–10',150], ['Tractions assistées',3,'6–10',150],
+    ['Rowing poitrine appuyée',3,'8–12',120], ['Écartés à la machine',2,'10–15',90],
+    ['Élévations latérales',4,'12–20',90], ['Curl incliné avec haltères',2,'10–15',90],
+    ['Extension triceps à la corde',2,'10–15',90]]},
+  {n:2, name:'Bas A — cuisses et ischios', dur:'50–65 min', ex:[
+    ['Presse à cuisses',3,'8–12',150], ['Soulevé de terre roumain',3,'6–10',150],
+    ['Leg curl assis',2,'10–15',90], ['Mollets à la presse',3,'10–15',90],
+    ['Crunch à la poulie',3,'10–15',75]]},
+  {n:3, name:'Haut B — dos, épaules et bras', dur:'60–75 min', ex:[
+    ['Tirage vertical prise neutre',3,'8–12',150], ['Développé incliné haltères',4,'8–12',150],
+    ['Rowing assis à la poulie',2,'8–12',120], ['Élévations latérales',4,'12–20',90],
+    ['Oiseau à la machine',2,'12–20',90], ['Curl marteau',3,'8–15',90],
+    ['Extension triceps au-dessus de la tête (poulie)',3,'10–15',90]]},
+  {n:4, name:'Bas B — jambes et tronc', dur:'50–65 min', ex:[
+    ['Squat ou presse selon confort',3,'8–12',150], ['Leg curl assis',3,'8–12',90],
+    ['Extensions de hanches au banc à 45°',2,'10–15',90], ['Mollets assis',3,'12–20',90],
+    ['Gainage latéral (secondes par côté)',2,'20–45',60]]},
+  {n:5, name:'Cardio facile (facultatif)', dur:'15–25 min', ex:[
+    ['Vélo ou marche (minutes)',1,'15–25',60]]}
+];
