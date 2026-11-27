@@ -68,3 +68,7 @@ body[data-theme="light"]{--bg:#f4f5f7;--card:#fff;--line:#c9cdd4;--tx:#171c24;--
 body[data-theme="dark"]{color-scheme:dark}
 .form input{text-align:left;padding:0 12px}
 #status:not(:empty){position:fixed;top:8px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:448px;padding:12px;background:var(--card);border:1px solid var(--ac);border-radius:12px;z-index:20;box-shadow:0 4px 16px #0004}
+
+/* Six onglets, libellé complémentaire compact sur mobile. */
+nav button[data-t="complement"]{font-size:10px;overflow-wrap:anywhere;line-height:1.15;flex:1.45;padding:2px}
+@media(max-width:360px){nav button{font-size:10px;padding:2px}nav button[data-t="complement"]{font-size:9px}}

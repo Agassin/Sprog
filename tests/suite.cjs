@@ -55,7 +55,7 @@ module.exports = function runTests(D, programSource, appSource) {
   customApp.act.start('1');
   check(!customApp.node('#app').innerHTML.includes('<img'), 'Custom exercise escaped in session');
   const a = app();
-  for (const tab of ['home','seance','prog','suivi','settings','history']) {
+  for (const tab of ['home','seance','prog','suivi','settings','history','complement']) {
     a.V.tab = tab; a.render(); check(a.node('#app').innerHTML.includes('<h1>'), 'Render ' + tab);
   }
   a.act.start('1');
@@ -88,5 +88,16 @@ module.exports = function runTests(D, programSource, appSource) {
   const corrupted = app({schema:999});
   check(corrupted.blocked(), 'Corrupt storage blocked');
   corrupted.act.start('1'); check(corrupted.S.cur === null, 'Cannot overwrite corrupt data');
+  const life = app(JSON.parse(a.memory.get(D.KEY)));
+  life.act.lifetime();
+  check(life.S.lifetime && life.S.program.length === 6 && life.S.schedule.join() === '1,2,3,4,5,6,0', 'Permanent six-day programme activates');
+  check(life.S.done.length === 1 && life.S.body.length === 1, 'Activation keeps history and body data');
+  life.act.day('5');
+  check(life.node('#app').innerHTML.includes('Legs B'), 'Sixth session visible');
+  check(!life.node('#app').innerHTML.includes('sur 12'), 'No fixed cycle');
+  life.V.tab = 'complement'; life.render();
+  check(life.node('#app').innerHTML.includes('Isométrie cervicale') && life.node('#app').innerHTML.includes('Dead bug'), 'Complementary exercises visible');
+  life.act.start('6');
+  check(D.validate(JSON.parse(life.memory.get(D.KEY)), PROGRAM).cur.n === 6, 'Sixth session persists');
   return {count, app};
 };

@@ -28,6 +28,7 @@ const clock = s => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 
 const kgTxt = k => k > 0 ? `${fmt(k)} kg × ` : '';
 
 function cycleLabel() {
+  if (S.lifetime) return 'Programme permanent · semaine '+week()+' · sans date de fin';
   if (!S.toji) return `Cycle ${cy()} · semaine ${wc()} sur 12`;
   if (new Date() < TOJI_START) return 'Objectif Toji · début lundi 30 novembre 2026';
   const w = SprogData.week(TOJI_START);
@@ -42,7 +43,7 @@ function tojiTip() {
 }
 function home() {
   const w = week(), n = MAP[V.day], P = PROGRAM[n - 1], m = S.toji && new Date() < TOJI_START ? TOJI_START : mon();
-  const cardio = S.toji ? [2,4].includes(V.day) : V.day === 3;
+  const cardio = S.lifetime ? false : S.toji ? [2,4].includes(V.day) : V.day === 3;
   const strip = DAYS.map((l, i) => {
     const t = MAP[i], d = new Date(m); d.setDate(d.getDate() + i);
     const ok = t && S.done.some(x => x.n === t && new Date(x.d).toDateString() === d.toDateString());
@@ -51,7 +52,7 @@ function home() {
   const card = n
     ? `<section class="card"><div class="lbl">SÉANCE ${n}</div><h2>${esc(P.name)}</h2><p class="mut">${P.ex.length} exercices · ${esc(P.dur)}</p><ul>${P.ex.map(e => `<li><span>${esc(e[0])}</span><span class="mut">${e[1]} × ${esc(e[2])}</span></li>`).join('')}</ul><button class="cta" data-a="start" data-v="${n}">${S.cur && S.cur.n === n ? 'Reprendre la séance' : 'Commencer la séance'}</button></section>`
     : `<section class="card"><h2>${cardio ? 'Repos actif' : 'Repos'}</h2><p class="mut">${cardio ? (S.toji ? 'Vélo ou marche facile, 15–25 min selon ta récupération.' : 'Marche ou cardio facile, 20–35 min.') : 'Récupération, marche facultative.'}</p></section>`;
-  return `${!S.toji ? '<section class="card"><h2>Objectif Toji</h2><p>Du 30 novembre au 24 janvier · 4 séances par semaine.</p><button data-a="toji">Activer le programme Toji</button></section>' : ''}${!S.done.length && !S.cur ? '<section class="card"><p>Bienvenue dans Sprog. Choisis un jour, démarre ta séance et valide chaque série. Pense à exporter tes données dans Réglages.</p></section>' : ''}<p class="lbl mut">${cycleLabel()}</p><h1>${n ? 'Séance ' + n + ' · ' + esc(P.name.split(' — ')[0]) : 'Jour de repos'}</h1><div class="bar"><i style="width:${S.toji ? (new Date() < TOJI_START ? 0 : Math.min(8,SprogData.week(TOJI_START)) / 8 * 100) : wc() / 12 * 100}%"></i></div><div class="strip">${strip}</div>${card}<p class="mut small">${S.toji ? tojiTip() : TIPS.find(t => wc() <= t[0])[1]}</p>`;
+  return `${!S.lifetime ? '<section class="card"><h2>Bodybuilding à vie · PPL A/B</h2><p>Six séances par semaine, sans date de fin. Ton historique et tes mesures restent intacts.</p><button class="cta" data-a="lifetime">Activer le programme permanent</button></section>' : ''}${!S.done.length && !S.cur ? '<section class="card"><p>Bienvenue dans Sprog. Choisis un jour, démarre ta séance et valide chaque série. Pense à exporter tes données dans Réglages.</p></section>' : ''}<p class="lbl mut">${cycleLabel()}</p><h1>${n ? 'Séance ' + n + ' · ' + esc(P.name.split(' — ')[0]) : 'Jour de repos'}</h1>${S.lifetime ? '' : `<div class="bar"><i style="width:${S.toji ? (new Date() < TOJI_START ? 0 : Math.min(8,SprogData.week(TOJI_START)) / 8 * 100) : wc() / 12 * 100}%"></i></div>`}<div class="strip">${strip}</div>${card}<p class="mut small">${S.lifetime ? 'Double progression : conserve 1–3 répétitions en réserve. Commence à 2 séries par exercice si tu reprends. Allège le volume selon ta récupération.' : S.toji ? tojiTip() : TIPS.find(t => wc() <= t[0])[1]}</p>`;
 }
 
 function seance() {
@@ -70,8 +71,8 @@ function seance() {
 <p class="lbl">EXERCICE ${c.i + 1} SUR ${P.ex.length}</p><h1>${esc(name)}</h1>
 <p class="mut">${ns} × ${esc(reps)} · repos ${rs >= 120 ? rs / 60 + ' min' : rs + ' s'} · ${S.toji && SprogData.week(TOJI_START) === 1 ? 'garde 3 reps en réserve' : 'garde 1–2 reps en réserve'}</p>
 <section class="card rest"><div class="lbl mut">REPOS</div><div id="rest" class="big">${clock(S.cur.restUntil ? rest : rs)}</div><div class="bar"><i id="restbar" style="width:${rest ? rest / restMax * 100 : 0}%"></i></div></section>
-<div class="sets"><div class="set hd"><span>SÉRIE</span><span>${name === 'Tractions assistées' ? 'ASSISTANCE (KG)' : 'CHARGE (KG)'}</span><span>${name.includes('(secondes') ? 'SEC / CÔTÉ' : name.includes('(minutes)') ? 'MIN' : 'REPS'}</span><i></i></div>${rows}</div>
-<p class="mut small">${name === 'Tractions assistées' ? 'Note les kilos d’assistance. À 3 × 10 propres, réduis l’assistance du plus petit cran.' : hint}</p>
+<div class="sets"><div class="set hd"><span>SÉRIE</span><span>${name.startsWith('Tractions') ? 'ASSISTANCE (KG)' : 'CHARGE (KG)'}</span><span>${name.includes('(secondes') ? (name.includes('par côté') ? 'SEC / CÔTÉ' : 'SEC') : name.includes('(minutes)') ? 'MIN' : 'REPS'}</span><i></i></div>${rows}</div>
+<p class="mut small">${name.startsWith('Tractions') ? 'Note les kilos d’assistance (0 sans assistance). À 3 × 10 propres, réduis l’assistance du plus petit cran.' : hint}</p>
 <button class="cta" data-a="${cur < 0 ? 'next' : 'valid'}">${cur < 0 ? (lastEx ? 'Terminer la séance' : 'Exercice suivant') : 'Valider la série ' + (cur + 1)}</button>
 <div class="top"><button class="ghost" data-a="previous" ${c.i === 0 ? 'disabled' : ''}>Exercice précédent</button><button class="ghost" data-a="undo" ${sets.some(s => s.ok) ? '' : 'disabled'}>Corriger la dernière série</button></div>
 <button class="ghost" data-a="skipRest">Arrêter le repos</button>
@@ -100,12 +101,21 @@ function suivi() {
 }
 
 const act = {
+  lifetime() {
+    if (S.cur || storageBlocked) return notice('Termine la séance ou règle le problème de stockage avant de changer de programme.');
+    if (!confirm('Activer le programme permanent et remplacer tes modèles et ton planning ? Historique et mesures conservés.')) return;
+    S.program = SprogData.validateProgram(LIFETIME_PROGRAM);
+    S.schedule = [...LIFETIME_SCHEDULE];
+    S.lifetime = true; delete S.toji;
+    syncRest(); V.day = today(); V.tab = 'home';
+    const saved = save(); render(); notice(saved ? 'Programme permanent activé.' : 'Programme en mémoire uniquement. Exporte une sauvegarde.');
+  },
   toji() {
     if (S.cur || storageBlocked) return notice('Termine la séance ou règle le problème de stockage avant de changer de programme.');
     if (!confirm('Activer le cycle Toji et remplacer tes modèles et ton planning ? Ton historique et tes mesures seront conservés.')) return;
     S.program = SprogData.validateProgram(TOJI_PROGRAM);
     S.schedule = [...TOJI_SCHEDULE];
-    S.toji = true;
+    S.toji = true; delete S.lifetime;
     syncRest();
     V.day = new Date() < TOJI_START ? 0 : today();
     save(); render();
@@ -153,7 +163,13 @@ const act = {
   }
 };
 
-const views = { home, seance, prog, suivi, settings, history, editor };
+function complement() {
+  return `<h1>Travail complémentaire</h1><p class="mut">À faire après la séance ou séparément, selon ta récupération. Ces blocs sont facultatifs si la fatigue est élevée.</p>
+  ${COMPLEMENTARY.map((d,i)=>`<section class="card"><h2>${esc(d.day)}${i===today()?' · Aujourd’hui':''}</h2>${d.ex.length?'<ul>'+d.ex.map(e=>`<li><div><b>${esc(e[0])}</b><p class="small mut">${esc(e[2])}</p></div><span class="mut">${esc(e[1])}</span></li>`).join('')+'</ul>':'<p>Repos musculaire.</p>'}<p><b>Cardio :</b> ${esc(d.cardio)}</p></section>`).join('')}
+  <section class="card"><h2>Mobilité quotidienne · 5–10 min</h2><p>Chevilles, hanches, rachis thoracique, épaules et poignets : mouvements lents et confortables.</p><p>Commence le cardio par 10–15 min si nécessaire et augmente progressivement. Intensité modérée : tu peux encore parler.</p></section>
+  <section class="card"><h2>Règles pour durer</h2><p>Reprise : 2 séries par exercice, RIR 3. Progression : RIR 2 sur les polyarticulaires, 1–2 sur l’isolation ; monte la charge seulement lorsque toutes les séries atteignent le haut de la fourchette avec une technique propre.</p><p>Repos : 3–4 min lourd, 2–3 min polyarticulaire, 1–2 min isolation, 45–90 s petits muscles. Maintien : −25 à −40 % des séries selon fatigue. Deload : 5–7 jours, moitié des séries, charge allégée, RIR 4–5.</p><p>Dors idéalement 7–9 h. Ne force pas sur une douleur persistante, notamment aux genoux ; demande un avis professionnel si nécessaire. Pour le cou, évite les charges importantes et les ponts cervicaux.</p></section>`;
+}
+const views = { home, seance, prog, suivi, settings, history, editor, complement };
 function render() {
   document.body?.setAttribute('data-theme', S.theme);
   $('#app').innerHTML = views[V.tab]();
@@ -294,8 +310,8 @@ function leaveEditor() {
 function editor() {
   const p = programDraft.program[editorSession];
   const days = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
-  return `<h1>Mon programme</h1><p class="mut">Personnalise cinq modèles de séance et choisis tes jours. Renommer un exercice crée une nouvelle courbe ; son ancien historique reste accessible.</p>
-<section class="card form"><h2>Planning</h2>${days.map((day,i) => `<label>${day}<select data-schedule="${i}">${[0,1,2,3,4,5].map(n => `<option value="${n}" ${programDraft.schedule[i] === n ? 'selected' : ''}>${n ? 'Séance '+n : 'Repos'}</option>`).join('')}</select></label>`).join('')}</section>
+  return `<h1>Mon programme</h1><p class="mut">Personnalise tes modèles de séance et choisis tes jours. Renommer un exercice crée une nouvelle courbe ; son ancien historique reste accessible.</p>
+<section class="card form"><h2>Planning</h2>${days.map((day,i) => `<label>${day}<select data-schedule="${i}">${Array.from({length:programDraft.program.length+1},(_,n)=>n).map(n => `<option value="${n}" ${programDraft.schedule[i] === n ? 'selected' : ''}>${n ? 'Séance '+n : 'Repos'}</option>`).join('')}</select></label>`).join('')}</section>
 <label class="form">Séance à modifier<select id="editor-session">${programDraft.program.map((p,i) => `<option value="${i}" ${i === editorSession ? 'selected' : ''}>${i+1} · ${esc(p.name)}</option>`).join('')}</select></label>
 <section class="card form"><label>Nom de la séance<input data-edit="name" maxlength="120" value="${esc(p.name)}"></label><label>Durée indicative<input data-edit="dur" maxlength="40" value="${esc(p.dur)}"></label></section>
 ${p.ex.map((e,i) => `<section class="card form"><h2>Exercice ${i+1}</h2><label>Nom<input data-ex="${i}" data-col="0" maxlength="120" value="${esc(e[0])}"></label><label>Séries (1–10)<input data-ex="${i}" data-col="1" inputmode="numeric" value="${esc(e[1])}"></label><label>Répétitions (ex. 8–12)<input data-ex="${i}" data-col="2" maxlength="30" value="${esc(e[2])}"></label><label>Repos en secondes<input data-ex="${i}" data-col="3" inputmode="numeric" value="${esc(e[3])}"></label><div class="top"><button class="ghost" data-a="moveExercise" data-v="${i}" ${i ? '' : 'disabled'}>Monter</button><button class="ghost danger" data-a="removeExercise" data-v="${i}" ${p.ex.length > 1 ? '' : 'disabled'}>Supprimer</button></div></section>`).join('')}
@@ -320,7 +336,7 @@ Object.assign(act, {
   removeExercise(v) { const ex = programDraft.program[editorSession].ex; if (ex.length > 1 && confirm('Supprimer cet exercice du programme ? Son historique sera conservé.')) { ex.splice(+v,1); editorDirty = true; render(); } },
   moveExercise(v) { const i = +v, ex = programDraft.program[editorSession].ex; if (i > 0) { [ex[i-1],ex[i]]=[ex[i],ex[i-1]]; editorDirty = true; render(); } },
   cancelEditor() { if (leaveEditor()) {V.tab = 'settings';render();} },
-  defaultProgram() { if (confirm('Remplacer le brouillon par le programme et le planning initiaux ?')) {programDraft={program:JSON.parse(JSON.stringify(DEFAULT_PROGRAM)),schedule:[1,2,3,0,4,5,0]};editorDirty=true;render();} },
+  defaultProgram() { if (confirm('Remplacer le brouillon par le programme et le planning initiaux ?')) {programDraft={program:JSON.parse(JSON.stringify(S.lifetime ? LIFETIME_PROGRAM : DEFAULT_PROGRAM)),schedule:S.lifetime ? [...LIFETIME_SCHEDULE] : [1,2,3,0,4,5,0]};editorDirty=true;render();} },
   theme() { S.theme = S.theme === 'dark' ? 'light' : 'dark'; save(); render(); },
   moreHistory() {historyLimit += 20; render();},
   deleteSession(d) {

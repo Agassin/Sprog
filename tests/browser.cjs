@@ -66,7 +66,7 @@ async function main() {
     await send('Page.navigate',{url:'http://127.0.0.1:' + port + '/Sprog/'});
     await until("document.querySelector('#app h1') && typeof S !== 'undefined'");
     await until('!!navigator.serviceWorker.controller');
-    for (const tab of ['home','seance','prog','suivi','settings']) {
+    for (const tab of ['home','seance','prog','suivi','complement','settings']) {
       await evaluate('document.querySelector(' + JSON.stringify('[data-t="' + tab + '"]') + ').click()');
       await check("!!document.querySelector('#app h1')", 'Missing screen ' + tab);
       await check('document.documentElement.scrollWidth <= innerWidth', 'Horizontal overflow at 320px: ' + tab);

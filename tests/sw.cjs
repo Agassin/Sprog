@@ -17,7 +17,7 @@ module.exports = async function testWorker(source) {
   check(installed.includes('https://example.org/Sprog/data.js'), 'Data module precached');
   check(installed.includes('https://example.org/Sprog/privacy.html'), 'Privacy available offline');
   handlers.activate({waitUntil:p => {pending = p;}}); await pending;
-  check(removed.join() === 'sprog-v3,sprog-v4,sprog-v5', 'Other apps caches preserved');
+  check(removed.join() === 'sprog-v3,sprog-v4,sprog-v5,sprog-v6', 'Other apps caches preserved');
   check(claimed, 'Clients claimed');
   handlers.message({data:{type:'SKIP_WAITING'}}); check(skipped, 'User-controlled activation');
   cached.set('https://example.org/Sprog/index.html', 'offline-shell');

@@ -23,7 +23,7 @@
   }
   const safeName = value => typeof value === 'string' && value.trim().length > 0 && value.length <= 120 && !Object.prototype.hasOwnProperty.call(Object.prototype, value.trim()) && value.trim() !== 'prototype';
   function validateProgram(program) {
-    if (!Array.isArray(program) || program.length !== 5) throw new Error('Le programme doit contenir cinq modèles de séance.');
+    if (!Array.isArray(program) || ![5, 6].includes(program.length)) throw new Error('Le programme doit contenir cinq ou six modèles de séance.');
     return program.map((p, i) => {
       if (!object(p) || !safeName(p.name) || typeof p.dur !== 'string' || p.dur.length > 40 || !Array.isArray(p.ex) || !p.ex.length || p.ex.length > 30) throw new Error('Séance invalide : nom, durée et 1 à 30 exercices requis.');
       const names = new Set();
@@ -45,9 +45,10 @@
     const set = s => object(s) && number(s.kg, 0, 2000) && number(s.reps, 1, 1000, true);
     const out = fresh(); out.start = input.start;
     if (input.toji === true) out.toji = true;
+    if (input.lifetime === true) out.lifetime = true;
     if (input.program != null) { out.program = validateProgram(input.program); program = out.program; }
     if (input.schedule !== undefined) {
-      if (!Array.isArray(input.schedule) || input.schedule.length !== 7 || !input.schedule.every(n => number(n,0,5,true))) fail();
+      if (!Array.isArray(input.schedule) || input.schedule.length !== 7 || !input.schedule.every(n => number(n,0,program.length,true))) fail();
       out.schedule = [...input.schedule];
     }
     if (input.theme !== undefined) { if (!['dark','light'].includes(input.theme)) fail(); out.theme = input.theme; }
@@ -59,9 +60,9 @@
       });
     }
     out.done = input.done.map(d => {
-      if (!object(d) || !date(d.d) || !w(d.w) || !number(d.n, 1, program.length, true)) fail();
+      if (!object(d) || !date(d.d) || !w(d.w) || !number(d.n, 1, 6, true)) fail();
       if (d.name !== undefined && !safeName(d.name)) fail();
-      return {d:d.d, w:d.w, n:d.n, name:d.name || program[d.n-1].name};
+      return {d:d.d, w:d.w, n:d.n, name:d.name || program[d.n-1]?.name || 'Séance '+d.n};
     });
     out.body = input.body.map(b => {
       if (!object(b) || !w(b.w) || !number(b.kg, 0, 500) || !number(b.cm, 0, 300) || !number(b.en, 0, 5, true)) fail();
